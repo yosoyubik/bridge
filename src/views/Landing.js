@@ -1,11 +1,14 @@
 import React from 'react';
 import { H1, P } from 'indigo-react';
 
+import { version } from '../../package.json';
+
 import { ROUTE_NAMES } from '../lib/routeNames';
 import { useHistory } from '../store/history';
 
 import View from 'components/View';
 import { ForwardButton } from 'components/Buttons';
+import FooterButton from 'components/FooterButton';
 
 function Landing() {
   const history = useHistory();
@@ -39,6 +42,10 @@ function Landing() {
         onClick={() => history.push(ROUTE_NAMES.VIEW_POINT)}>
         View a Point
       </ForwardButton>
+
+      <FooterButton disabled accessory="">
+        {`version ${version}`}
+      </FooterButton>
     </View>
   );
 }
