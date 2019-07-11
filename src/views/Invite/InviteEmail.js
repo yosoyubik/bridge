@@ -321,8 +321,7 @@ export default function InviteEmail() {
         const txHash = await sendSignedTransaction(
           _web3,
           Just(invite.signedTx),
-          tankWasUsed,
-          () => {}
+          tankWasUsed
         );
 
         // TODO: waitForTransactionConfirm never rejects

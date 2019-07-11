@@ -14,6 +14,17 @@ const needBuilder = fn => obj => {
   });
 };
 
+// simpler function for inline need.value(thing, () => {})
+export const value = (obj, fn) => needBuilder(fn)(obj);
+
+export const details = needBuilder(() => {
+  throw new Error('need details of point');
+});
+
+export const authMnemonic = needBuilder(() => {
+  throw new Error('need auth mnemonic');
+});
+
 export const web3 = needBuilder(() => {
   throw new Error(BRIDGE_ERROR.MISSING_WEB3.message);
 });

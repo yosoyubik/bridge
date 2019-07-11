@@ -42,6 +42,7 @@ export const addressFromSecp256k1Public = pub => {
   return toChecksumAddress(addr);
 };
 
+// TODO: move all of these generic crypto helpers to another file
 export const addHexPrefix = hex =>
   hex.slice(0, 2) === '0x' ? hex : '0x' + hex;
 
@@ -73,28 +74,10 @@ export const eqAddr = (addr0, addr1) =>
   toChecksumAddress(addr0) === toChecksumAddress(addr1);
 
 export const urbitWalletFromTicket = async (ticket, point, passphrase) => {
-  if (typeof point === 'string') {
-    //TODO why not in kg?
-    point = ob.patp2dec(point);
-  }
-
   return await kg.generateWallet({
     ticket: ticket,
     ship: point,
     passphrase: passphrase,
-  });
-};
-
-export const ownershipWalletFromTicket = async (ticket, point, passphrase) => {
-  if (typeof point === 'string') {
-    //TODO why not in kg?
-    point = ob.patp2dec(point);
-  }
-
-  return await kg.generateOwnershipWallet({
-    ticket,
-    ship: point,
-    passphrase,
   });
 };
 

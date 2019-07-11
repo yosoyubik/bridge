@@ -8,39 +8,7 @@ import { NETWORK_TYPES } from './network';
 import { ledgerSignTransaction } from './ledger';
 import { trezorSignTransaction } from './trezor';
 import { WALLET_TYPES, addHexPrefix } from './wallet';
-
-const CHECK_BLOCK_EVERY_MS =
-  process.env.NODE_ENV === 'development' ? 1000 : 5000;
-
-const TXN_PURPOSE = {
-  SET_MANAGEMENT_PROXY: Symbol('SET_MANAGEMENT_PROXY'),
-  SET_TRANSFER_PROXY: Symbol('SET_TRANSFER_PROXY'),
-  SET_SPAWN_PROXY: Symbol('SET_SPAWN_PROXY'),
-  CREATE_GALAXY: Symbol('CREATE_GALAXY'),
-  ISSUE_CHILD: Symbol('ISSUE_CHILD'),
-  SET_KEYS: Symbol('SET_KEYS'),
-  TRANSFER: Symbol('TRANSFER'),
-  CANCEL_TRANSFER: Symbol('CANCEL_TRANSFER'),
-};
-
-const renderTxnPurpose = purpose =>
-  purpose === TXN_PURPOSE.SET_MANAGEMENT_PROXY
-    ? 'set this management proxy'
-    : purpose === TXN_PURPOSE.SET_SPAWN_PROXY
-    ? 'set this spawn proxy'
-    : purpose === TXN_PURPOSE.SET_TRANSFER_PROXY
-    ? 'set this transfer proxy'
-    : purpose === TXN_PURPOSE.CREATE_GALAXY
-    ? 'create this galaxy'
-    : purpose === TXN_PURPOSE.ISSUE_CHILD
-    ? 'issue this point'
-    : purpose === TXN_PURPOSE.SET_KEYS
-    ? 'set these network keys'
-    : purpose === TXN_PURPOSE.TRANSFER
-    ? 'transfer this point'
-    : purpose === TXN_PURPOSE.CANCEL_TRANSFER
-    ? 'cancel this transfer'
-    : 'perform this transaction';
+import { CHECK_BLOCK_EVERY_MS } from './constants';
 
 const signTransaction = async config => {
   let {
@@ -136,6 +104,8 @@ const signTransaction = async config => {
   return stx;
 };
 
+// TODO(shrugs): refactor the hell out of all of these functions
+// but especially this one
 const sendSignedTransaction = (web3, stx, doubtNonceError, confirmationCb) => {
   const txn = stx.matchWith({
     Just: tx => tx.value,
@@ -157,7 +127,9 @@ const sendSignedTransaction = (web3, stx, doubtNonceError, confirmationCb) => {
       //     in on-transactionHash? we don't care (much) about additional
       //     confirms anyway.
       .on('confirmation', (confirmationNum, txn) => {
-        confirmationCb(txn.transactionHash, confirmationNum + 1);
+        if (confirmationCb) {
+          confirmationCb(txn.transactionHash, confirmationNum + 1);
+        }
         resolve(txn.transactionHash);
       })
       .on('error', err => {
@@ -209,6 +181,9 @@ const isTransactionConfirmed = async (web3, txHash) => {
   return receipt !== null;
 };
 
+const sendTransactionsAndAwaitConfirm = async (web3, signedTxs, usedTank) =>
+  Promise.all(signedTxs.map(tx => sendSignedTransaction(web3, tx, usedTank)));
+
 const hexify = val => addHexPrefix(val.toString('hex'));
 
 const renderSignedTx = stx => ({
@@ -223,6 +198,7 @@ const getTxnInfo = async (web3, addr) => {
   let nonce = await web3.eth.getTransactionCount(addr);
   let chainId = await web3.eth.net.getId();
   let gasPrice = await web3.eth.getGasPrice();
+
   return {
     nonce: nonce,
     chainId: chainId,
@@ -230,6 +206,7 @@ const getTxnInfo = async (web3, addr) => {
   };
 };
 
+// TODO(shrugs): deprecate, unifiy with other callsites
 const canDecodePatp = p => {
   try {
     ob.patp2dec(p);
@@ -243,10 +220,9 @@ export {
   signTransaction,
   sendSignedTransaction,
   waitForTransactionConfirm,
+  sendTransactionsAndAwaitConfirm,
   isTransactionConfirmed,
-  TXN_PURPOSE,
   getTxnInfo,
-  renderTxnPurpose,
   hexify,
   renderSignedTx,
   toHex,

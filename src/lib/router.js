@@ -2,13 +2,9 @@ import Landing from '../views/Landing';
 import Login from '../views/Login.js';
 import InvitesManage from '../views/InvitesManage.js';
 import Admin from '../views/Admin';
-import Redownload from '../views/Redownload';
-import Reticket from '../views/Reticket';
-import Permissions from '../views/Permissions';
 import AcceptTransfer from '../views/AcceptTransfer';
 import CancelTransfer from '../views/CancelTransfer';
 import CreateGalaxy from '../views/CreateGalaxy';
-import GenKeyfile from '../views/GenKeyfile';
 import IssueChild from '../views/IssueChild';
 import ViewPoint from '../views/ViewPoint';
 import SentTransaction from '../views/SentTransaction';
@@ -33,9 +29,6 @@ export const ROUTES = {
   [ROUTE_NAMES.INVITES_MANAGE]: InvitesManage,
   [ROUTE_NAMES.LOGIN]: Login,
   [ROUTE_NAMES.ADMIN]: Admin,
-  [ROUTE_NAMES.REDOWNLOAD]: Redownload,
-  [ROUTE_NAMES.RETICKET]: Reticket,
-  [ROUTE_NAMES.PERMISSIONS]: Permissions,
   [ROUTE_NAMES.ACCEPT_TRANSFER]: AcceptTransfer,
   [ROUTE_NAMES.CANCEL_TRANSFER]: CancelTransfer,
   [ROUTE_NAMES.VIEW_POINT]: ViewPoint,
@@ -49,5 +42,4 @@ export const ROUTES = {
   [ROUTE_NAMES.SET_KEYS]: SetKeys,
   [ROUTE_NAMES.TRANSFER]: Transfer,
   [ROUTE_NAMES.SENT_TRANSACTION]: SentTransaction,
-  [ROUTE_NAMES.GEN_KEYFILE]: GenKeyfile,
 };
