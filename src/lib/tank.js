@@ -6,7 +6,7 @@ import { waitForTransactionConfirm } from './txn';
 //     did not succeed", you might need to visit localhost:3001 or whatever
 //     explicitly and tell your browser that's safe to access.
 //     https://stackoverflow.com/a/53011185/1334324
-const baseUrl = 'https://localhost:3001';
+const baseUrl = 'https://gas-tank.urbit.org:3001';
 
 function sendRequest(where, what) {
   return new Promise((resolve, reject) => {
