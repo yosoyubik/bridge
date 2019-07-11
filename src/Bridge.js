@@ -16,8 +16,8 @@ import { isDevelopment } from 'lib/flags';
 import 'style/index.scss';
 
 const INITIAL_NETWORK_TYPE = isDevelopment
-  ? NETWORK_TYPES.LOCAL
-  : NETWORK_TYPES.MAINNET;
+  ? NETWORK_TYPES.ROPSTEN
+  : NETWORK_TYPES.ROPSTEN;
 
 // NB(shrugs): modify these variables to change the default local state.
 const SHOULD_STUB_LOCAL = process.env.REACT_APP_STUB_LOCAL === 'true';
