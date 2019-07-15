@@ -138,8 +138,11 @@ const sendSignedTransaction = (web3, stx, doubtNonceError, confirmationCb) => {
         // we just wait for first confirmation here.
         console.error(err);
         if (
-          doubtNonceError &&
-          (err.message || '').includes("the tx doesn't have the correct nonce.")
+          (err.message || '').includes('known transaction: ') ||
+          (doubtNonceError &&
+            (err.message || '').includes(
+              "the tx doesn't have the correct nonce."
+            ))
         ) {
           console.log('nonce error, likely from gas tank submission, ignoring');
           const txHash = web3.utils.keccak256(rawTx);
@@ -154,7 +157,7 @@ const sendSignedTransaction = (web3, stx, doubtNonceError, confirmationCb) => {
             }
           });
         } else {
-          reject(err.message);
+          reject(err.message || 'Transaction sending failed!');
         }
       });
   });

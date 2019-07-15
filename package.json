@@ -1,6 +1,6 @@
 {
   "name": "bridge",
-  "version": "2.0.0-beta-190712-2",
+  "version": "2.0.0-beta-190715-1",
   "description": "An application for interacting with Azimuth",
   "repository": {
     "type": "git",
