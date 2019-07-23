@@ -1,15 +1,19 @@
 import React, { useState, useCallback } from 'react';
 import { Just, Nothing } from 'folktale/maybe';
 import { Grid, H4, Text, ErrorText } from 'indigo-react';
+import { fromWei } from 'web3-utils';
 
-import { reticketPointBetweenWallets } from 'lib/invite';
-import { fromWei } from 'lib/txn';
+import {
+  reticketPointBetweenWallets,
+  TRANSACTION_PROGRESS,
+} from 'lib/reticket';
 import * as need from 'lib/need';
 import useLifecycle from 'lib/useLifecycle';
 
 import { useNetwork } from 'store/network';
 import { useWallet } from 'store/wallet';
 import { usePointCursor } from 'store/pointCursor';
+import { usePointCache } from 'store/pointCache';
 import { useHistory } from 'store/history';
 
 import { RestartButton, ForwardButton } from 'components/Buttons';
@@ -18,32 +22,51 @@ import LoadingBar from 'components/LoadingBar';
 import Highlighted from 'components/Highlighted';
 import { WALLET_TYPES } from 'lib/wallet';
 
-// TODO: maybe we can merge PassportTransfer here?
+const labelForProgress = progress => {
+  if (progress <= 0) {
+    return 'Starting...';
+  } else if (progress <= TRANSACTION_PROGRESS.GENERATING) {
+    return 'Generating Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.SIGNING) {
+    return 'Signing Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.FUNDING) {
+    return 'Funding Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.TRANSFERRING) {
+    return 'Transferring Point...';
+  } else if (progress <= TRANSACTION_PROGRESS.CLEANING) {
+    return 'Cleaning Up...';
+  } else if (progress <= TRANSACTION_PROGRESS.DONE) {
+    return 'Done';
+  }
+};
+
 export default function ReticketExecute({ newWallet, setNewWallet }) {
   const { popTo, names, reset } = useHistory();
   const { web3, contracts } = useNetwork();
   const { wallet, setWalletType, resetWallet, setUrbitWallet } = useWallet();
   const { pointCursor } = usePointCursor();
+  const { getDetails } = usePointCache();
 
   const [generalError, setGeneralError] = useState();
-  const [{ label, progress }, setState] = useState({
-    label: 'Starting...',
-    progress: 0,
-  });
+  const [progress, setProgress] = useState(0);
   const [needFunds, setNeedFunds] = useState();
   const isDone = progress >= 1.0;
 
   // start reticketing transactions on mount
   useLifecycle(() => {
     (async () => {
+      const point = need.point(pointCursor);
+      const details = need.details(getDetails(point));
+      const networkRevision = parseInt(details.keyRevisionNumber, 10);
       try {
         await reticketPointBetweenWallets({
           fromWallet: need.wallet(wallet),
           toWallet: newWallet.value.wallet,
-          point: need.point(pointCursor),
+          point: point,
           web3: need.web3(web3),
           contracts: need.contracts(contracts),
           onUpdate: handleUpdate,
+          nextRevision: networkRevision + 1,
         });
       } catch (err) {
         setGeneralError(err);
@@ -70,7 +93,7 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
     ({ type, state, value }) => {
       switch (type) {
         case 'progress':
-          return setState(state);
+          return setProgress(state);
         case 'askFunding':
           return setNeedFunds(value);
         case 'gotFunding':
@@ -79,7 +102,7 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
           console.error(`Unknown update: ${type}`);
       }
     },
-    [setState, setNeedFunds]
+    [setProgress, setNeedFunds]
   );
 
   const renderAdditionalInfo = () => {
@@ -93,6 +116,7 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
             full
             className="mt3"
             as={RestartButton}
+            solid
             onClick={goToRestart}>
             Restart
           </Grid.Item>
@@ -123,26 +147,10 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
   return (
     <Grid gap={4} className="mt4">
       <Grid.Item full as={H4}>
-        {label}
+        {labelForProgress(progress)}
       </Grid.Item>
 
-      {!isDone && (
-        <>
-          <Grid.Item full as={Grid} className="mt3" gap={3}>
-            <Grid.Item full as={LoadingBar} progress={progress} />
-            <Grid.Item full>
-              <Text className="f5 green4">
-                This process can take up to 5 minutes to complete. Don't leave
-                this page until the process is complete.
-              </Text>
-            </Grid.Item>
-          </Grid.Item>
-
-          {renderAdditionalInfo()}
-        </>
-      )}
-
-      {isDone && (
+      {isDone ? (
         <>
           <Grid.Item full as={Text}>
             Your changes are now reflected on-chain and you can use the new
@@ -156,6 +164,20 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
             onClick={loginAndGoHome}>
             Login with New Master Ticket
           </Grid.Item>
+        </>
+      ) : (
+        <>
+          <Grid.Item full as={Grid} className="mt3" gap={3}>
+            <Grid.Item full as={LoadingBar} progress={progress} />
+            <Grid.Item full>
+              <Text className="f5 green4">
+                This process can take up to 5 minutes to complete. Don't leave
+                this page until the process is complete.
+              </Text>
+            </Grid.Item>
+          </Grid.Item>
+
+          {renderAdditionalInfo()}
         </>
       )}
     </Grid>

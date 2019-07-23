@@ -1,121 +1,96 @@
-import { Just } from 'folktale/maybe';
-import React from 'react';
-import { H1, P } from '../components/old/Base';
-import {
-  InnerLabel,
-  AddressInput,
-  ShowBlockie,
-  Anchor,
-} from '../components/old/Base';
+import React, { useCallback } from 'react';
+import cn from 'classnames';
+import { Grid, Text } from 'indigo-react';
 import * as azimuth from 'azimuth-js';
-import * as ob from 'urbit-ob';
-import * as need from '../lib/need';
 
-import StatelessTransaction from '../components/old/StatelessTransaction';
-import { NETWORK_TYPES } from '../lib/network';
-import { isValidAddress } from '../lib/wallet';
-import { withNetwork } from '../store/network';
-import { compose } from '../lib/lib';
-import { withWallet } from '../store/wallet';
-import { withPointCursor } from '../store/pointCursor';
+import { useNetwork } from 'store/network';
+import { usePointCursor } from 'store/pointCursor';
+import { usePointCache } from 'store/pointCache';
+import { useHistory } from 'store/history';
+import { useWallet } from 'store/wallet';
+
+import * as need from 'lib/need';
+import useCurrentPointName from 'lib/useCurrentPointName';
+import useEthereumTransaction from 'lib/useEthereumTransaction';
+import { GAS_LIMITS } from 'lib/constants';
+import useLifecycle from 'lib/useLifecycle';
+
+import ViewHeader from 'components/ViewHeader';
+import MiniBackButton from 'components/MiniBackButton';
+import InlineEthereumTransaction from 'components/InlineEthereumTransaction';
 import View from 'components/View';
 
-class AcceptTransfer extends React.Component {
-  constructor(props) {
-    super(props);
+function useAcceptTransfer() {
+  const { contracts } = useNetwork();
+  const { pointCursor } = usePointCursor();
+  const { syncOwnedPoint, syncControlledPoints } = usePointCache();
+  const { wallet } = useWallet();
 
-    const receivingAddress = need.addressFromWallet(props.wallet);
-    const incomingPoint = need.point(props.pointCursor);
+  const _contracts = need.contracts(contracts);
+  const _point = need.point(pointCursor);
+  const _address = need.addressFromWallet(wallet);
 
-    this.state = {
-      receivingAddress: receivingAddress,
-      incomingPoint: incomingPoint,
-    };
+  const { construct, ...rest } = useEthereumTransaction(
+    useCallback(
+      () =>
+        azimuth.ecliptic.transferPoint(
+          _contracts,
+          _point,
+          _address,
+          /* reset */ true
+        ),
+      [_contracts, _point, _address]
+    ),
+    useCallback(
+      () => Promise.all([syncOwnedPoint(_point), syncControlledPoints()]),
+      [_point, syncControlledPoints, syncOwnedPoint]
+    ),
+    GAS_LIMITS.TRANSFER
+  );
 
-    this.handleAddressInput = this.handleAddressInput.bind(this);
-    this.createUnsignedTxn = this.createUnsignedTxn.bind(this);
-    this.statelessRef = React.createRef();
-  }
+  useLifecycle(() => {
+    construct();
+  });
 
-  handleAddressInput(proxyAddress) {
-    this.setState({ proxyAddress });
-    this.statelessRef.current.clearTxn();
-  }
-
-  createUnsignedTxn() {
-    const { state, props } = this;
-
-    const validContracts = need.contracts(props.contracts);
-    const validPoint = need.point(props.pointCursor);
-    //TODO state.incomingPoint ?
-
-    return Just(
-      azimuth.ecliptic.transferPoint(
-        validContracts,
-        validPoint,
-        state.receivingAddress,
-        true
-      )
-    );
-  }
-
-  render() {
-    const { state, props } = this;
-    const validAddress = isValidAddress(state.receivingAddress);
-    const canGenerate = validAddress === true;
-
-    const esvisible =
-      props.networkType === NETWORK_TYPES.ROPSTEN ||
-      props.networkType === NETWORK_TYPES.MAINNET;
-
-    const esdomain =
-      props.networkType === NETWORK_TYPES.ROPSTEN
-        ? 'ropsten.etherscan.io'
-        : 'etherscan.io';
-
-    return (
-      <View>
-        <H1>
-          {'Accept Transfer of '}{' '}
-          <code>{` ${ob.patp(state.incomingPoint)} `}</code>
-        </H1>
-
-        <P>
-          {"By default, the recipient is the address you're logged in " +
-            'as.  But you can transfer to any address you like.'}
-        </P>
-
-        <AddressInput
-          className="mono mt-8"
-          prop-size="lg"
-          prop-format="innerLabel"
-          value={state.receivingAddress}
-          onChange={v => this.handleAddressInput(v)}>
-          <InnerLabel>{'Receiving Address'}</InnerLabel>
-          <ShowBlockie className={'mt-1'} address={state.receivingAddress} />
-        </AddressInput>
-
-        <Anchor
-          className={'mt-1 sm'}
-          prop-size="sm"
-          prop-disabled={!isValidAddress(state.receivingAddress) || !esvisible}
-          target={'_blank'}
-          href={`https://${esdomain}/address/${state.receivingAddress}`}>
-          {'View on Etherscan ↗'}
-        </Anchor>
-
-        <StatelessTransaction
-          canGenerate={canGenerate}
-          createUnsignedTxn={this.createUnsignedTxn}
-          ref={this.statelessRef}
-        />
-      </View>
-    );
-  }
+  return {
+    ...rest,
+  };
 }
 
-export default compose(
-  withNetwork,
-  withWallet,
-  withPointCursor
-)(AcceptTransfer);
+export default function AcceptTransfer() {
+  const { pop } = useHistory();
+
+  const name = useCurrentPointName();
+
+  const { completed, bind } = useAcceptTransfer();
+
+  return (
+    <View inset>
+      <Grid>
+        <Grid.Item full as={MiniBackButton} onClick={() => pop()} />
+
+        <Grid.Item full as={ViewHeader}>
+          Accept Transfer
+        </Grid.Item>
+
+        <Grid.Item
+          full
+          as={Text}
+          className={cn('f5', {
+            green3: completed,
+          })}>
+          {completed
+            ? `${name} has been accepted.`
+            : `Accept the incoming transfer of ${name}.`}
+        </Grid.Item>
+
+        <Grid.Item
+          full
+          as={InlineEthereumTransaction}
+          {...bind}
+          onReturn={() => pop()}
+        />
+      </Grid>
+    </View>
+  );
+}

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Grid, Text, ErrorText } from 'indigo-react';
+import { fromWei } from 'web3-utils';
 
 import { useNetwork } from 'store/network';
 import { useWallet } from 'store/wallet';
@@ -8,9 +9,11 @@ import { usePointCursor } from 'store/pointCursor';
 
 import * as need from 'lib/need';
 import useLifecycle from 'lib/useLifecycle';
-import { reticketPointBetweenWallets } from 'lib/invite';
+import {
+  reticketPointBetweenWallets,
+  TRANSACTION_PROGRESS,
+} from 'lib/reticket';
 import timeout from 'lib/timeout';
-import { fromWei } from 'lib/txn';
 
 import WarningBox from 'components/WarningBox';
 import LoadingBar from 'components/LoadingBar';
@@ -19,6 +22,24 @@ import { RestartButton } from 'components/Buttons';
 
 import { useActivateFlow } from './ActivateFlow';
 import PassportView from './PassportView';
+
+const labelForProgress = progress => {
+  if (progress <= 0) {
+    return 'Verify Passport';
+  } else if (progress <= TRANSACTION_PROGRESS.GENERATING) {
+    return 'Generating Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.SIGNING) {
+    return 'Signing Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.FUNDING) {
+    return 'Funding Transactions...';
+  } else if (progress <= TRANSACTION_PROGRESS.TRANSFERRING) {
+    return 'Transferring Point...';
+  } else if (progress <= TRANSACTION_PROGRESS.CLEANING) {
+    return 'Cleaning Up...';
+  } else if (progress <= TRANSACTION_PROGRESS.DONE) {
+    return 'Done';
+  }
+};
 
 export default function PassportTransfer({ className, resetActivateRouter }) {
   const { replaceWith, names } = useHistory();
@@ -32,10 +53,7 @@ export default function PassportTransfer({ className, resetActivateRouter }) {
     reset: resetActivateFlow,
   } = useActivateFlow();
   const [generalError, setGeneralError] = useState();
-  const [{ label, progress }, setState] = useState({
-    label: 'Verify Passport',
-    progress: 0,
-  });
+  const [progress, setProcesss] = useState(0);
   const [needFunds, setNeedFunds] = useState();
 
   const goToLogin = useCallback(
@@ -69,7 +87,7 @@ export default function PassportTransfer({ className, resetActivateRouter }) {
     ({ type, state, value }) => {
       switch (type) {
         case 'progress':
-          return setState(state);
+          return setProcesss(state);
         case 'askFunding':
           return setNeedFunds(value);
         case 'gotFunding':
@@ -78,7 +96,7 @@ export default function PassportTransfer({ className, resetActivateRouter }) {
           console.error(`Unknown update: ${type}`);
       }
     },
-    [setState, setNeedFunds]
+    [setProcesss, setNeedFunds]
   );
 
   const claimPoint = useCallback(async () => {
@@ -139,6 +157,7 @@ export default function PassportTransfer({ className, resetActivateRouter }) {
             full
             className="mt3"
             as={RestartButton}
+            solid
             onClick={goToRestart}>
             Restart
           </Grid.Item>
@@ -171,7 +190,10 @@ export default function PassportTransfer({ className, resetActivateRouter }) {
   };
 
   return (
-    <PassportView className={className} header={label} step={3}>
+    <PassportView
+      className={className}
+      header={labelForProgress(progress)}
+      step={3}>
       <Grid>
         <Grid.Item full as={Grid} className="mt3" gap={3}>
           <Grid.Item full as={LoadingBar} progress={progress} />

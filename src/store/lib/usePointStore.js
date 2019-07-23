@@ -6,7 +6,6 @@ import useRekeyDateStore from './useRekeyDateStore';
 import useInvitesStore from './useInvitesStore';
 import useControlledPointsStore from './useControlledPointsStore';
 import useEclipticOwnerStore from './useEclipticOwnerStore';
-import useOptimisticPointDetailsStore from './useOptimisticDetailsStore';
 
 export default function usePointStore() {
   const { syncDetails, ...details } = useDetailsStore();
@@ -18,29 +17,26 @@ export default function usePointStore() {
     ...controlledPoints
   } = useControlledPointsStore();
   const ecliptic = useEclipticOwnerStore();
-  const optimistic = useOptimisticPointDetailsStore();
 
   // sync all of the on-chain info required to display a known point
   const syncKnownPoint = useCallback(
-    point => {
-      syncBirthday(point);
-      syncRekeyDate(point);
-    },
+    async point => Promise.all([syncBirthday(point), syncRekeyDate(point)]),
     [syncBirthday, syncRekeyDate]
   );
 
   // sync all of the on-chain info required to display a foreign point
-  const syncForeignPoint = useCallback(point => {}, []);
+  const syncForeignPoint = useCallback(async point => {}, []);
 
   // sync all of the on-chain info required for a point that the user owns
   const syncOwnedPoint = useCallback(
-    point => {
-      syncForeignPoint(point);
-      syncKnownPoint(point);
-      //
-      syncDetails(point);
-      syncInvites(point);
-    },
+    async point =>
+      Promise.all([
+        syncForeignPoint(point),
+        syncKnownPoint(point),
+        //
+        syncDetails(point),
+        syncInvites(point),
+      ]),
     [syncForeignPoint, syncKnownPoint, syncDetails, syncInvites]
   );
 
@@ -51,7 +47,8 @@ export default function usePointStore() {
     ...invites,
     ...controlledPoints,
     ...ecliptic,
-    ...optimistic,
+    syncDetails,
+    syncRekeyDate,
     syncInvites,
     syncControlledPoints,
     syncKnownPoint,

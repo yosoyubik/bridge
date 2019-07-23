@@ -1,6 +1,7 @@
 import { isDevelopment } from './flags';
 
 const CHECK_BLOCK_EVERY_MS = isDevelopment ? 1000 : 5000;
+const DEFAULT_GAS_PRICE_GWEI = 20;
 
 const MIN_GALAXY = 0;
 const MAX_GALAXY = 255;
@@ -20,9 +21,9 @@ const SEED_ENTROPY_BITS = 128;
 //TODO move into azimuth-js
 const GAS_LIMITS = {
   SPAWN: 250000,
-  TRANSFER: 490000,
+  TRANSFER: 550000,
   CONFIGURE_KEYS: 100000,
-  SET_PROXY: 120000,
+  SET_PROXY: 130000,
   //
   ESCAPE: 115000, //NOTE low sample size
   ADOPT: 100000, //NOTE low sample size
@@ -32,7 +33,9 @@ const GAS_LIMITS = {
   //
   GIFT_PLANET: 400000, //NOTE low sample size
   //
-  DEFAULT: 500000,
+  SEND_ETH: 21000,
+  //
+  DEFAULT: 550000,
 };
 
 // TODO: this is walletgen-ui specific, move into a wallet router later
@@ -68,6 +71,7 @@ const PROFILE_STATES = {
 
 export {
   CHECK_BLOCK_EVERY_MS,
+  DEFAULT_GAS_PRICE_GWEI,
   GAS_LIMITS,
   GEN_STATES,
   BUTTON_STATES,

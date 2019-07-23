@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { AccessoryIcon, useForm } from 'indigo-react';
 import { identity } from 'lodash';
 import * as bip39 from 'bip39';
@@ -15,8 +15,10 @@ import {
   validateOneOf,
   validateMaximumPatpByteLength,
   validateEthereumAddress,
+  validateNotNullAddress,
+  validateGreaterThan,
 } from 'lib/validators';
-import { prependSig } from 'lib/transformers';
+import { prependSig, convertToNumber } from 'lib/transformers';
 
 import InputSigil from 'components/InputSigil';
 
@@ -69,7 +71,7 @@ export function useHexInput({ length, ...rest }) {
       {
         type: 'text', // or password
         autoComplete: 'off',
-        placeholder: EXAMPLE_PRIVATE_KEY,
+        placeholder: `e.g. ${EXAMPLE_PRIVATE_KEY}`,
         validators: useMemo(
           () => [
             validateHexString,
@@ -143,31 +145,34 @@ export function useTicketInput({ validators = [], deriving = false, ...rest }) {
   );
 }
 
-const kPointValidators = [
-  validatePoint,
-  validateMaximumPatpByteLength(4),
-  validateNotEmpty,
-];
 const kPointTransformers = [prependSig];
-export function usePointInput(rest) {
-  const [lastValidPoint, setLastValidPoint] = useState('');
+export function usePointInput({ size = 4, validators = [], ...rest }) {
+  const _validators = useMemo(
+    () => [
+      ...validators,
+      validatePoint,
+      validateMaximumPatpByteLength(size),
+      validateNotEmpty,
+    ],
+    [size, validators]
+  );
+
   return useFirstOf(
     useForm([
       {
         type: 'text',
         label: 'Point',
         placeholder: 'e.g. ~zod',
-        validators: kPointValidators,
+        validators: _validators,
         transformers: kPointTransformers,
         mono: true,
-        onValue: setLastValidPoint,
         ...rest,
       },
     ]),
-    ({ error, pass, focused }) => ({
-      accessory: lastValidPoint ? (
+    ({ error, pass, focused, value }) => ({
+      accessory: value ? (
         <InputSigil
-          patp={lastValidPoint}
+          patp={value}
           size={44}
           margin={8}
           pass={pass}
@@ -177,6 +182,14 @@ export function usePointInput(rest) {
       ) : null,
     })
   );
+}
+
+export function useGalaxyInput(props) {
+  return usePointInput({
+    label: 'Galaxy Name',
+    size: 1,
+    ...props,
+  });
 }
 
 export function useCheckboxInput({ initialValue, ...rest }) {
@@ -212,7 +225,11 @@ export function useSelectInput({ initialValue, options, ...rest }) {
   );
 }
 
-const kAddressValidators = [validateEthereumAddress, validateNotEmpty];
+const kAddressValidators = [
+  validateEthereumAddress,
+  validateNotNullAddress,
+  validateNotEmpty,
+];
 export function useAddressInput({ ...rest }) {
   return useFirstOf(
     useForm([
@@ -223,6 +240,23 @@ export function useAddressInput({ ...rest }) {
         autoComplete: 'off',
         validators: kAddressValidators,
         mono: true,
+        ...rest,
+      },
+    ])
+  );
+}
+
+const kNumberTransformers = [convertToNumber];
+const kNumberValidators = [validateGreaterThan(0)];
+export function useNumberInput({ ...rest }) {
+  return useFirstOf(
+    useForm([
+      {
+        type: 'number',
+        label: 'Number',
+        autoComplete: 'off',
+        transformers: kNumberTransformers,
+        validators: kNumberValidators,
         ...rest,
       },
     ])

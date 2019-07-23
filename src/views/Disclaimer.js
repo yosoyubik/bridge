@@ -4,7 +4,7 @@ import { Grid, H3, B, Text, CheckboxInput } from 'indigo-react';
 
 import { useCheckboxInput } from 'lib/useInputs';
 import { useHistory } from 'store/history';
-import { setDisclaimerCookie } from 'lib/disclaimerCookie';
+import useHasDisclaimed from 'lib/useHasDisclaimed';
 
 import View from 'components/View';
 import { ForwardButton } from 'components/Buttons';
@@ -13,16 +13,17 @@ import WarningBox from 'components/WarningBox';
 const TEXT_STYLE = 'f5';
 
 export default function ActivateDisclaimer() {
-  const { popAndPush, names } = useHistory();
+  const { pop } = useHistory();
+  const [, setHasDisclaimed] = useHasDisclaimed();
   const [understoodInput, { data: isUnderstood }] = useCheckboxInput({
     name: 'checkbox',
     label: 'I acknowledge and understand these rights',
   });
 
   const goToPassport = useCallback(() => {
-    setDisclaimerCookie();
-    popAndPush(names.LANDING);
-  }, [popAndPush, names]);
+    setHasDisclaimed(true);
+    pop();
+  }, [pop, setHasDisclaimed]);
 
   return (
     <View>

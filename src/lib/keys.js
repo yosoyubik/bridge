@@ -1,6 +1,5 @@
 import BN from 'bn.js';
 import { Just, Nothing } from 'folktale/maybe';
-import * as need from './need';
 
 import * as noun from '../nockjs/noun';
 import * as serial from '../nockjs/serial';
@@ -8,7 +7,13 @@ import * as kg from 'urbit-key-generation/dist';
 
 import { eqAddr, addHexPrefix } from './wallet';
 
-const NETWORK_KEY_CURVE_PARAMETER = '42';
+// the curve param for the network keys
+export const NETWORK_KEY_CURVE_PARAMETER = '42';
+// the current crypto suite version
+export const CRYPTO_SUITE_VERSION = 1;
+
+export const CURVE_ZERO_ADDR =
+  '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 // ctsy joemfb
 const b64 = buf => {
@@ -85,17 +90,21 @@ export const deriveNetworkSeedFromUrbitWallet = async (
   urbitWallet,
   revision = 1
 ) => {
-  return deriveNetworkSeedFromSeed(urbitWallet.management.seed, revision);
+  return await deriveNetworkSeedFromMnemonic(
+    urbitWallet.management.seed,
+    urbitWallet.meta.passphrase,
+    revision
+  );
 };
 
 /**
  * @param {Maybe<any>} wallet
- * @param {Maybe<string>} authMnemonic
+ * @param {string} authMnemonic
  * @param {object} details
  * @param {number} revision
  * @return {Promise<Maybe<string>>}
  */
-export const deriveNetworkSeedFromMnemonic = async (
+export const deriveNetworkSeedFromManagementMnemonic = async (
   wallet,
   authMnemonic,
   details,
@@ -103,23 +112,33 @@ export const deriveNetworkSeedFromMnemonic = async (
 ) => {
   const isManagementProxy = eqAddr(wallet.address, details.managementProxy);
 
+  // the network seed is derivable iff this mnemonic is the management proxy
   if (isManagementProxy) {
-    return await deriveNetworkSeedFromSeed(authMnemonic, revision);
+    return await deriveNetworkSeedFromMnemonic(
+      authMnemonic,
+      wallet.passphrase,
+      revision
+    );
   }
 
   return Nothing();
 };
 
 /**
- * @param {string} seed
+ * @param {string} mnemonic
+ * @param {string} passphrase
  * @param {number} revision
  * @return {Promise<Maybe<string>>}
  */
-const deriveNetworkSeedFromSeed = async (seed, revision) => {
-  const networkSeed = await kg.deriveNetworkSeed(seed, '', revision);
-  // apparently deriveNetworkSeed can return empty string
-  // and perhaps even malformed
-  return networkSeed === '' ? Nothing() : Just(networkSeed);
+const deriveNetworkSeedFromMnemonic = async (
+  mnemonic,
+  passphrase,
+  revision
+) => {
+  //NOTE revision is the point's on-chain revision number. since common uhdw
+  //     usage derives the first key at revision/index 0, we need to decrement
+  //     the on-chain revision number by one to get the number to derive with.
+  return Just(await kg.deriveNetworkSeed(mnemonic, passphrase, revision - 1));
 };
 
 /**
@@ -137,7 +156,7 @@ export const attemptNetworkSeedDerivation = async ({
   }
 
   if (Just.hasInstance(wallet) && Just.hasInstance(authMnemonic)) {
-    return await deriveNetworkSeedFromMnemonic(
+    return await deriveNetworkSeedFromManagementMnemonic(
       wallet.value,
       authMnemonic.value,
       details,
@@ -162,4 +181,15 @@ export const keysMatchChain = (pair, details) => {
     encryptionKey === addHexPrefix(crypt.public) &&
     authenticationKey === addHexPrefix(auth.public)
   );
+};
+
+export const segmentNetworkKey = hex => {
+  if (hex === CURVE_ZERO_ADDR) {
+    return null;
+  }
+
+  const sl = i => hex.slice(i, i + 4);
+  const rowFrom = i => `${sl(i)}.${sl(i + 4)}.${sl(i + 8)}.${sl(i + 12)}`;
+
+  return [rowFrom(2), rowFrom(18), rowFrom(34), rowFrom(50)];
 };

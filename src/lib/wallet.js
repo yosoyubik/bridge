@@ -4,14 +4,12 @@ import keccak from 'keccak';
 import { reduce } from 'lodash';
 import { Just, Nothing } from 'folktale/maybe';
 import * as secp256k1 from 'secp256k1';
-import * as ob from 'urbit-ob';
 import * as kg from 'urbit-key-generation/dist';
 import { isAddress } from 'web3-utils';
 
 export const DEFAULT_HD_PATH = "m/44'/60'/0'/0/0";
 export const ETH_ZERO_ADDR = '0x0000000000000000000000000000000000000000';
-export const CURVE_ZERO_ADDR =
-  '0x0000000000000000000000000000000000000000000000000000000000000000';
+export const ETH_ZERO_ADDR_SHORT = '0x0';
 
 export const WALLET_TYPES = {
   MNEMONIC: Symbol('MNEMONIC'),
@@ -56,7 +54,8 @@ export const keccak256 = str =>
 
 export const isValidAddress = a => '0x0' === a || isAddress(a);
 
-export const isZeroAddress = a => ETH_ZERO_ADDR === a;
+export const isZeroAddress = a =>
+  a === ETH_ZERO_ADDR || a === ETH_ZERO_ADDR_SHORT;
 
 export const toChecksumAddress = address => {
   const addr = stripHexPrefix(address).toLowerCase();
@@ -92,6 +91,7 @@ export const walletFromMnemonic = (mnemonic, hdpath, passphrase) => {
       const hd = bip32.fromSeed(sd);
       wal = hd.derivePath(path);
       wal.address = addressFromSecp256k1Public(wal.publicKey);
+      wal.passphrase = passphrase || '';
       wal = Just(wal);
     } catch (_) {
       wal = Nothing();
@@ -102,3 +102,6 @@ export const walletFromMnemonic = (mnemonic, hdpath, passphrase) => {
   const wallet = seed.chain(sd => toWallet(sd, hdpath));
   return wallet;
 };
+
+export const abbreviateAddress = address =>
+  `${address.slice(0, 4)}…${address.slice(-4)}`;
