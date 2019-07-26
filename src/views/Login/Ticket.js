@@ -1,4 +1,5 @@
 import { Just, Nothing } from 'folktale/maybe';
+import cn from 'classnames';
 import React, { useCallback, useState, useEffect } from 'react';
 import * as azimuth from 'azimuth-js';
 import * as ob from 'urbit-ob';
@@ -19,6 +20,7 @@ import * as need from 'lib/need';
 import { WALLET_TYPES, urbitWalletFromTicket } from 'lib/wallet';
 import useImpliedPoint from 'lib/useImpliedPoint';
 import useLoginView from 'lib/useLoginView';
+import patp2dec from 'lib/patp2dec';
 
 export default function Ticket({ className }) {
   useLoginView(WALLET_TYPES.TICKET);
@@ -88,13 +90,18 @@ export default function Ticket({ className }) {
     setDeriving(true);
     setUrbitWallet(Nothing());
 
-    if (!ob.isValidPatq(ticket) || !ob.isValidPatp(pointName)) {
+    if (
+      !ticket ||
+      !pointName ||
+      !ob.isValidPatq(ticket) ||
+      !ob.isValidPatp(pointName)
+    ) {
       setDeriving(false);
       return;
     }
 
     const _contracts = need.contracts(contracts);
-    const point = ob.patp2dec(pointName);
+    const point = patp2dec(pointName);
     const urbitWallet = await urbitWalletFromTicket(ticket, point, passphrase);
     const [isOwner, isTransferProxy] = await Promise.all([
       azimuth.azimuth.isOwner(
@@ -117,7 +124,7 @@ export default function Ticket({ className }) {
     }
 
     setUrbitWallet(Just(urbitWallet));
-    setPointCursor(Just(ob.patp2dec(pointName)));
+    setPointCursor(Just(point));
     setDeriving(false);
   }, [
     pointName,
@@ -136,7 +143,7 @@ export default function Ticket({ className }) {
 
     try {
       const ticket = kg.combine([s1, s2, s3]);
-      const point = ob.patp2dec(pointName);
+      const point = patp2dec(pointName);
       const uhdw = await urbitWalletFromTicket(ticket, point, passphrase);
       setUrbitWallet(Just(uhdw));
     } catch (_) {
@@ -160,7 +167,7 @@ export default function Ticket({ className }) {
   ]);
 
   return (
-    <Grid className={className}>
+    <Grid className={cn('mt4', className)}>
       <Grid.Item full as={Input} {...pointInput} />
 
       {!isUsingShards && <Grid.Item full as={Input} {...ticketInput} />}
