@@ -29,7 +29,6 @@ import {
   hexify,
 } from 'lib/txn';
 import * as tank from 'lib/tank';
-import { useLocalRouter } from 'lib/LocalRouter';
 import useArray from 'lib/useArray';
 import { buildEmailInputConfig } from 'lib/useInputs';
 import { MIN_PLANET, GAS_LIMITS, DEFAULT_GAS_PRICE_GWEI } from 'lib/constants';
@@ -39,7 +38,6 @@ import useSetState from 'lib/useSetState';
 import pluralize from 'lib/pluralize';
 import useMailer from 'lib/useMailer';
 
-import MiniBackButton from 'components/MiniBackButton';
 import LoadableButton from 'components/LoadableButton';
 import Highlighted from 'components/Highlighted';
 
@@ -96,7 +94,6 @@ const buildAccessoryFor = (dones, errors) => name => {
 // TODO: test with tank, successful txs
 export default function InviteEmail() {
   // TODO: resumption after error?
-  const { pop } = useLocalRouter();
   const { contracts, web3, networkType } = useNetwork();
   const { wallet, walletType, walletHdPath } = useWallet();
   const { syncInvites, getInvites } = usePointCache();
@@ -194,15 +191,14 @@ export default function InviteEmail() {
     await Promise.all(
       inputs.map(async input => {
         const email = input.data;
-        const hasReceived = getHasReceived(email).matchWith({
-          Nothing: () => 'unknown', // loading
-          Just: p => p.value,
+        getHasReceived(email).matchWith({
+          Nothing: () => {
+            knowAll = false;
+          },
+          Just: p => {
+            if (p.value) alreadyReceived.push(email);
+          },
         });
-        if (hasReceived === 'unknown') {
-          knowAll = false;
-        } else if (hasReceived) {
-          alreadyReceived.push(email);
-        }
       })
     );
     if (!knowAll) {
@@ -322,7 +318,8 @@ export default function InviteEmail() {
     setStatus(STATUS.SENDING);
     clearReceipts();
 
-    let errorCount = 0;
+    let unsentInvites = [];
+    let orphanedInvites = [];
     const txAndMailings = inputs.map(async input => {
       const invite = invites[input.name];
       try {
@@ -337,10 +334,7 @@ export default function InviteEmail() {
         if (!didConfirm) throw new Error();
       } catch (error) {
         console.error(error);
-        errorCount++;
-        addError({
-          [input.name]: `Transaction Failure for ${invite.email}`,
-        });
+        unsentInvites.push(invite);
         return;
       }
 
@@ -354,11 +348,7 @@ export default function InviteEmail() {
         if (!success) throw new Error('Failed to send mail');
       } catch (error) {
         console.error(error);
-        errorCount++;
-        //TODO make sure this actually gets displayed
-        addError({
-          [input.name]: `Mailing Failure for ${invite.email}, please send them this code manually: ${invite.ticket}`,
-        });
+        orphanedInvites.push(invite);
       }
 
       addReceipt({ [input.name]: true });
@@ -366,13 +356,24 @@ export default function InviteEmail() {
 
     await Promise.all(txAndMailings);
     // if there are any receipt errors, throw a general error
-    if (errorCount > 0) {
-      throw new Error(
-        `There ${pluralize(errorCount, 'was', 'were')} ${pluralize(
-          errorCount,
-          'error'
-        )} while sending transactions.`
-      );
+    let errorString = '';
+    if (orphanedInvites.length > 0) {
+      errorString =
+        'Not all invite emails were sent. ' +
+        'Please send the following invite codes manually: ' +
+        orphanedInvites.map(i => `${i.email}: ${i.ticket}`).join(', ') +
+        '. ';
+    }
+    if (unsentInvites.length > 0) {
+      errorString =
+        errorString +
+        'Not all invites were created. ' +
+        'Did not send invites for: ' +
+        unsentInvites.map(i => i.email).join(', ') +
+        '.';
+    }
+    if (errorString !== '') {
+      throw new Error(errorString);
     }
   }, [
     web3,
@@ -382,7 +383,6 @@ export default function InviteEmail() {
     invites,
     point,
     wallet,
-    addError,
     sendMail,
   ]);
 
@@ -435,21 +435,16 @@ export default function InviteEmail() {
 
   return (
     <Grid gap={3}>
-      <Grid.Item as={Grid} full>
-        <Grid.Item as={Flex} cols={[1, 11]} align="center">
-          <MiniBackButton onClick={() => pop()} />
-        </Grid.Item>
-        <Grid.Item cols={[11, 13]} justifySelf="end">
-          {/* use hidden class instead of removing component from dom */}
-          {/* in order to avoid janky reflow */}
-          <IconButton
-            onClick={() => appendInput()}
-            disabled={!canAddInvite}
-            className={cn({ hidden: isDone })}
-            solid>
-            +
-          </IconButton>
-        </Grid.Item>
+      <Grid.Item full as={Flex} justify="end">
+        {/* use hidden class instead of removing component from dom */}
+        {/* in order to avoid janky reflow */}
+        <IconButton
+          onClick={() => appendInput()}
+          disabled={!canAddInvite}
+          className={cn({ hidden: isDone })}
+          solid>
+          +
+        </IconButton>
       </Grid.Item>
 
       {isDone && (
@@ -517,7 +512,7 @@ export default function InviteEmail() {
 
           {needFunds && (
             <Grid.Item full>
-              <Highlighted>
+              <Highlighted warning>
                 Your ownership address {needFunds.address} needs at least{' '}
                 {fromWei(needFunds.minBalance)} ETH and currently has{' '}
                 {fromWei(needFunds.balance)} ETH. Waiting until the account has
