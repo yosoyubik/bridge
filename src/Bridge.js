@@ -18,8 +18,8 @@ import useHasDisclaimed from 'lib/useHasDisclaimed';
 import 'style/index.scss';
 
 const INITIAL_NETWORK_TYPE = isDevelopment
-  ? NETWORK_TYPES.ROPSTEN
-  : NETWORK_TYPES.ROPSTEN;
+  ? NETWORK_TYPES.MAINNET
+  : NETWORK_TYPES.MAINNET;
 
 // NB(shrugs): modify these variables to change the default local state.
 const SHOULD_STUB_LOCAL = process.env.REACT_APP_STUB_LOCAL === 'true';
