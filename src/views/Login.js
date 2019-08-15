@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from 'react';
-import { Nothing } from 'folktale/maybe';
 import { H4, Grid } from 'indigo-react';
 
 import { useHistory } from 'store/history';
@@ -62,7 +61,7 @@ const walletTypeToViewName = walletType => {
 export default function Login() {
   // globals
   const { pop, push, names } = useHistory();
-  const { wallet, walletType } = useWallet();
+  const { walletType } = useWallet();
 
   // inputs
   const [currentTab, setCurrentTab] = useState(
@@ -74,7 +73,7 @@ export default function Login() {
     names.ACTIVATE,
   ]);
 
-  const doContinue = useCallback(() => {
+  const goHome = useCallback(() => {
     push(names.POINTS);
   }, [push, names]);
 
@@ -90,21 +89,14 @@ export default function Login() {
           full
           as={Tabs}
           className="mt1"
+          // Tabs
           views={VIEWS}
           options={OPTIONS}
           currentTab={currentTab}
           onTabChange={setCurrentTab}
+          // Tab extra
+          goHome={goHome}
         />
-
-        <Grid.Item
-          full
-          as={ForwardButton}
-          solid
-          className="mt2"
-          disabled={Nothing.hasInstance(wallet)}
-          onClick={doContinue}>
-          Continue
-        </Grid.Item>
       </Grid>
 
       <Footer>
