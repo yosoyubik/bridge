@@ -35,14 +35,13 @@ import {
 } from 'lib/txn';
 import * as tank from 'lib/tank';
 import { MIN_PLANET, GAS_LIMITS } from 'lib/constants';
-import { useSuggestedGasPrice } from 'lib/useSuggestedGasPrice';
 import * as need from 'lib/need';
 import * as wg from 'lib/walletgen';
 import useSetState from 'lib/useSetState';
 import pluralize from 'lib/pluralize';
 import useMailer from 'lib/useMailer';
 
-import LoadableButton from 'components/LoadableButton';
+import ProgressButton from 'components/ProgressButton';
 import Highlighted from 'components/Highlighted';
 import BridgeForm from 'form/BridgeForm';
 import { Field } from 'react-final-form';
@@ -57,6 +56,9 @@ import { FORM_ERROR } from 'final-form';
 import SubmitButton from 'form/SubmitButton';
 import FormError from 'form/FormError';
 import { WARNING, onlyHasWarning } from 'form/helpers';
+import useGasPrice from 'lib/useGasPrice';
+import timeout from 'lib/timeout';
+import { ForwardButton } from 'components/Buttons';
 
 const INITIAL_VALUES = { emails: [''] };
 
@@ -106,7 +108,7 @@ export default function InviteEmail() {
   const { pointCursor } = usePointCursor();
   const point = need.point(pointCursor);
   const { getHasReceived, sendMail } = useMailer();
-  const { gasPrice } = useSuggestedGasPrice(networkType);
+  const { gasPrice } = useGasPrice();
 
   const cachedEmails = useRef({});
 
@@ -129,8 +131,8 @@ export default function InviteEmail() {
 
   // derive booleans from status
   const canInput = status === STATUS.INPUT;
-  const canSend = status === STATUS.CAN_SEND;
   const isGenerating = status === STATUS.GENERATING;
+  const canSend = status === STATUS.CAN_SEND;
   const isSending = status === STATUS.SENDING;
   const isFailed = status === STATUS.FAILURE;
   const isDone = status === STATUS.SUCCESS;
@@ -174,6 +176,10 @@ export default function InviteEmail() {
     : isSending
     ? Object.keys(receipts).length
     : null;
+  const percentProgress =
+    progress !== null
+      ? progress / Object.keys(cachedEmails.current).length
+      : null;
   const visualProgress = progress === null ? '-' : `${progress + 1}`;
 
   // build a builder for the accessory to the input, depending on status
@@ -245,8 +251,8 @@ export default function InviteEmail() {
             nonce: nonce + i,
             // TODO: ^ make a useTransactionSigner to encapsulate this logic
             txn: inviteTx,
-            gasPrice: gasPrice.toString(),
-            gasLimit: GAS_LIMIT.toString(),
+            gasPrice: gasPrice.toFixed(), // expects string gwei
+            gasLimit: GAS_LIMIT.toFixed(),
           });
 
           const rawTx = hexify(signedTx.serialize());
@@ -302,7 +308,7 @@ export default function InviteEmail() {
       _web3,
       point,
       _wallet.address,
-      toWei((gasPrice * GAS_LIMIT * emails.length).toString(), 'gwei'),
+      toWei((gasPrice * GAS_LIMIT * emails.length).toFixed(), 'gwei'),
       names.map(name => invites[name].rawTx),
       (address, minBalance, balance) =>
         setNeedFunds({ address, minBalance, balance }),
@@ -393,6 +399,8 @@ export default function InviteEmail() {
         return errors;
       }
 
+      await timeout(500); // wait for progress animation to complete.
+
       setStatus(STATUS.CAN_SEND);
     },
     [generateInvites]
@@ -418,6 +426,70 @@ export default function InviteEmail() {
       syncInvites(point);
     }
   }, [isDone, syncInvites, point]);
+
+  const renderButton = ({ handleSubmit, fields }) => {
+    if (canInput) {
+      return (
+        <Grid.Item
+          full
+          as={SubmitButton}
+          handleSubmit={handleSubmit}
+          accessory={`${visualProgress}/${fields.length}`}>
+          {buttonText(status, fields.length)}
+        </Grid.Item>
+      );
+    }
+
+    if (isGenerating) {
+      return (
+        <Grid.Item
+          full
+          as={ProgressButton}
+          solid
+          disabled
+          className="mt4"
+          accessory={`${visualProgress}/${fields.length}`}
+          progress={percentProgress}
+          color="black">
+          {buttonText(status, fields.length)}
+        </Grid.Item>
+      );
+    }
+
+    if (canSend) {
+      return (
+        <Grid.Item
+          full
+          as={ForwardButton}
+          className="mt4"
+          solid
+          success
+          accessory={`${visualProgress}/${fields.length}`}
+          onClick={doSend}>
+          {buttonText(status, fields.length)}
+        </Grid.Item>
+      );
+    }
+
+    if (isSending) {
+      return (
+        <Grid.Item
+          full
+          as={ProgressButton}
+          className="mt4"
+          solid
+          success
+          disabled
+          accessory={`${visualProgress}/${fields.length}`}
+          progress={percentProgress}
+          color={isGenerating ? 'black' : 'green4'}>
+          {buttonText(status, fields.length)}
+        </Grid.Item>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <Grid gap={3}>
@@ -507,27 +579,7 @@ export default function InviteEmail() {
                         );
                       })}
 
-                      {canInput ? (
-                        <Grid.Item
-                          full
-                          as={SubmitButton}
-                          handleSubmit={handleSubmit}
-                          accessory={`${visualProgress}/${fields.length}`}>
-                          {buttonText(status, fields.length)}
-                        </Grid.Item>
-                      ) : (
-                        <Grid.Item
-                          full
-                          as={LoadableButton}
-                          className="mt4"
-                          disabled={!canSend}
-                          accessory={`${visualProgress}/${fields.length}`}
-                          onClick={doSend}
-                          success={canSend}
-                          solid>
-                          {buttonText(status, fields.length)}
-                        </Grid.Item>
-                      )}
+                      {renderButton({ handleSubmit, fields })}
 
                       {needFunds && (
                         <Grid.Item full>
