@@ -18,8 +18,9 @@ import {
   AccessoryIcon,
 } from 'indigo-react';
 import { uniq } from 'lodash';
-import { fromWei, toWei, toBN } from 'web3-utils';
+import { toWei, toBN } from 'web3-utils';
 import { FieldArray } from 'react-final-form-arrays';
+import { Field } from 'react-final-form';
 
 import { usePointCursor } from 'store/pointCursor';
 import { useNetwork } from 'store/network';
@@ -43,8 +44,10 @@ import useMailer from 'lib/useMailer';
 
 import ProgressButton from 'components/ProgressButton';
 import Highlighted from 'components/Highlighted';
+import { ForwardButton } from 'components/Buttons';
+import NeedFundsNotice from 'components/NeedFundsNotice';
+
 import BridgeForm from 'form/BridgeForm';
-import { Field } from 'react-final-form';
 import { EmailInput } from 'form/Inputs';
 import {
   buildEmailValidator,
@@ -58,7 +61,6 @@ import FormError from 'form/FormError';
 import { WARNING, onlyHasWarning } from 'form/helpers';
 import useGasPrice from 'lib/useGasPrice';
 import timeout from 'lib/timeout';
-import { ForwardButton } from 'components/Buttons';
 
 const INITIAL_VALUES = { emails: [''] };
 
@@ -133,6 +135,7 @@ export default function InviteEmail() {
   const canInput = status === STATUS.INPUT;
   const isGenerating = status === STATUS.GENERATING;
   const canSend = status === STATUS.CAN_SEND;
+  const isFunding = status === STATUS.FUNDING;
   const isSending = status === STATUS.SENDING;
   const isFailed = status === STATUS.FAILURE;
   const isDone = status === STATUS.SUCCESS;
@@ -467,8 +470,22 @@ export default function InviteEmail() {
           className="mt4"
           solid
           success
-          accessory={`${visualProgress}/${fields.length}`}
           onClick={doSend}>
+          {buttonText(status, fields.length)}
+        </Grid.Item>
+      );
+    }
+
+    if (isFunding) {
+      return (
+        <Grid.Item
+          full
+          as={ForwardButton}
+          className="mt4"
+          solid
+          success
+          disabled
+          accessory={`${visualProgress}/${fields.length}`}>
           {buttonText(status, fields.length)}
         </Grid.Item>
       );
@@ -585,14 +602,7 @@ export default function InviteEmail() {
                       {renderButton({ handleSubmit, fields })}
 
                       {needFunds && (
-                        <Grid.Item full>
-                          <Highlighted warning>
-                            Your ownership address {needFunds.address} needs at
-                            least {fromWei(needFunds.minBalance)} ETH and
-                            currently has {fromWei(needFunds.balance)} ETH.
-                            Waiting until the account has enough funds.
-                          </Highlighted>
-                        </Grid.Item>
+                        <Grid.Item full as={NeedFundsNotice} {...needFunds} />
                       )}
 
                       <Grid.Item full as={FormError} />

@@ -28,6 +28,8 @@ import {
 } from 'form/validators';
 import BridgeForm from 'form/BridgeForm';
 import FormError from 'form/FormError';
+import CopiableAddress from 'components/CopiableAddress';
+import convertToInt from 'lib/convertToInt';
 
 function useIssueChild() {
   const { contracts } = useNetwork();
@@ -59,7 +61,7 @@ export default function IssueChild() {
   const { pointCursor } = usePointCursor();
 
   const _contracts = need.contracts(contracts);
-  const _point = parseInt(need.point(pointCursor), 10);
+  const _point = convertToInt(need.point(pointCursor), 10);
 
   const availablePointsPromise = useConstant(() =>
     azimuth.azimuth
@@ -84,7 +86,7 @@ export default function IssueChild() {
 
   const validateFormAsync = useCallback(
     async values => {
-      const point = patp2dec(values.name);
+      const point = patp2dec(values.point);
       const hasPoint = (await availablePointsPromise).has(point);
 
       if (!hasPoint) {
@@ -153,7 +155,7 @@ export default function IssueChild() {
                     green3: completed,
                   })}>
                   {values.point} has been spawned and can be claimed by{' '}
-                  {values.owner}.
+                  <CopiableAddress>{values.owner}</CopiableAddress>.
                 </Grid.Item>
               )}
 

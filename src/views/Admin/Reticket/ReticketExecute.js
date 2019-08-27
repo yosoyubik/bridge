@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Just, Nothing } from 'folktale/maybe';
 import { Grid, H4, Text, ErrorText } from 'indigo-react';
-import { fromWei } from 'web3-utils';
 
 import {
   reticketPointBetweenWallets,
@@ -9,6 +8,8 @@ import {
 } from 'lib/reticket';
 import * as need from 'lib/need';
 import useLifecycle from 'lib/useLifecycle';
+import { WALLET_TYPES } from 'lib/wallet';
+import convertToInt from 'lib/convertToInt';
 
 import { useNetwork } from 'store/network';
 import { useWallet } from 'store/wallet';
@@ -19,8 +20,7 @@ import { useHistory } from 'store/history';
 import { RestartButton, ForwardButton } from 'components/Buttons';
 import WarningBox from 'components/WarningBox';
 import LoadingBar from 'components/LoadingBar';
-import Highlighted from 'components/Highlighted';
-import { WALLET_TYPES } from 'lib/wallet';
+import NeedFundsNotice from 'components/NeedFundsNotice';
 
 const labelForProgress = progress => {
   if (progress <= 0) {
@@ -57,7 +57,7 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
     (async () => {
       const point = need.point(pointCursor);
       const details = need.details(getDetails(point));
-      const networkRevision = parseInt(details.keyRevisionNumber, 10);
+      const networkRevision = convertToInt(details.keyRevisionNumber, 10);
       try {
         await reticketPointBetweenWallets({
           fromWallet: need.wallet(wallet),
@@ -127,14 +127,7 @@ export default function ReticketExecute({ newWallet, setNewWallet }) {
 
     if (needFunds) {
       return (
-        <Grid.Item full className="mt4">
-          <Highlighted warning>
-            The address {needFunds.address} needs at least{' '}
-            {fromWei(needFunds.minBalance)} ETH and currently has{' '}
-            {fromWei(needFunds.balance)} ETH. Waiting until the account has
-            enough funds.
-          </Highlighted>
-        </Grid.Item>
+        <Grid.Item full as={NeedFundsNotice} className="mt4" {...needFunds} />
       );
     }
 
