@@ -7,6 +7,7 @@ import { azimuth } from 'azimuth-js';
 import { usePointCursor } from 'store/pointCursor';
 
 import View from 'components/View';
+import Greeting from 'components/Greeting';
 import Passport from 'components/Passport';
 import { ForwardButton, BootArvoButton } from 'components/Buttons';
 import { matchBlinky } from 'components/Blinky';
@@ -71,7 +72,7 @@ export default function Point() {
               as={ForwardButton}
               disabled={!isActiveOwner}
               onClick={goPartiesSetPoolSize}>
-              Manage Parties
+              Manage Invite Pools
             </Grid.Item>
             <Grid.Divider />
           </>
@@ -87,6 +88,7 @@ export default function Point() {
 
   return (
     <View pop={pop} inset>
+      <Greeting point={point} />
       <Passport point={Just(point)} />
       <Grid className="pt2">
         {inviteButton}
@@ -110,7 +112,7 @@ export default function Point() {
             <Grid.Divider />
           </>
         )}
-        <Grid.Item full as={BootArvoButton} disabled />
+        <Grid.Item full as={BootArvoButton} />
         <Grid.Divider />
       </Grid>
     </View>
