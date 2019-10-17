@@ -1,17 +1,19 @@
 import React, { useCallback } from 'react';
 import { Just } from 'folktale/maybe';
-import * as need from 'lib/need';
 import { Grid } from 'indigo-react';
 import { azimuth } from 'azimuth-js';
 
 import { usePointCursor } from 'store/pointCursor';
+import { useWallet } from 'store/wallet';
 
 import View from 'components/View';
 import Greeting from 'components/Greeting';
 import Passport from 'components/Passport';
 import { ForwardButton, BootArvoButton } from 'components/Buttons';
 import { matchBlinky } from 'components/Blinky';
+import DownloadSigilButton from 'components/DownloadSigilButton';
 
+import * as need from 'lib/need';
 import useInvites from 'lib/useInvites';
 import { useSyncOwnedPoints } from 'lib/useSyncPoints';
 import useCurrentPermissions from 'lib/useCurrentPermissions';
@@ -21,6 +23,7 @@ export default function Point() {
   const { pop, push, names } = useLocalRouter();
   const { pointCursor } = usePointCursor();
 
+  const { wallet } = useWallet();
   const point = need.point(pointCursor);
 
   const {
@@ -86,10 +89,16 @@ export default function Point() {
   // sync the current cursor
   useSyncOwnedPoints([point]);
 
+  const address = need.addressFromWallet(wallet);
+
   return (
     <View pop={pop} inset>
       <Greeting point={point} />
-      <Passport point={Just(point)} />
+      <Passport
+        point={Just(point)}
+        address={Just(address)}
+        animationMode={'slide'}
+      />
       <Grid className="pt2">
         {inviteButton}
         <Grid.Item
@@ -113,6 +122,8 @@ export default function Point() {
           </>
         )}
         <Grid.Item full as={BootArvoButton} />
+        <Grid.Divider />
+        <Grid.Item full as={DownloadSigilButton} point={point} />
         <Grid.Divider />
       </Grid>
     </View>
