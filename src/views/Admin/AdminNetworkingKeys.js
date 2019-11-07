@@ -25,7 +25,7 @@ import { addHexPrefix } from 'lib/wallet';
 import useKeyfileGenerator from 'lib/useKeyfileGenerator';
 
 import ViewHeader from 'components/ViewHeader';
-import { BootArvoButton } from 'components/Buttons';
+import { BootUrbitOSButton } from 'components/Buttons';
 import FooterButton from 'components/FooterButton';
 import DownloadKeyfileButton from 'components/DownloadKeyfileButton';
 import InlineEthereumTransaction from 'components/InlineEthereumTransaction';
@@ -97,7 +97,7 @@ function useSetKeys() {
           return networkSeed.value;
         }
 
-        randomSeed.current = randomSeed.current || randomHex(64);
+        randomSeed.current = randomSeed.current || randomHex(32); // 32 bytes
         setNdNetworkSeed(randomSeed.current);
 
         return randomSeed.current;
@@ -178,7 +178,7 @@ export default function AdminNetworkingKeys() {
       composeValidator(
         {
           useNetworkSeed: buildCheckboxValidator(),
-          networkSeed: buildHexValidator(32),
+          networkSeed: buildHexValidator(64), // 64 chars
           useDiscontinuity: buildCheckboxValidator(),
         },
         validateForm
@@ -355,7 +355,7 @@ export default function AdminNetworkingKeys() {
                     full
                     as={HexInput}
                     name="networkSeed"
-                    label="Network Seed (64 bytes)"
+                    label="Network Seed (32 bytes)"
                     disabled={inputsLocked}
                   />
                 </Condition>
@@ -385,7 +385,7 @@ export default function AdminNetworkingKeys() {
 
         {completed && (
           <>
-            <Grid.Item full as={BootArvoButton} />
+            <Grid.Item full as={BootUrbitOSButton} />
             <Grid.Divider />
           </>
         )}
