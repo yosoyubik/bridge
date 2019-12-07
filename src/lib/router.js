@@ -13,6 +13,9 @@ import PartySetPoolSize from 'views/Party/PartySetPoolSize';
 import AcceptTransfer from 'views/AcceptTransfer';
 import CancelTransfer from 'views/CancelTransfer';
 
+import Boot from 'views/Boot';
+import Hosting from 'views/Hosting';
+
 import { ROUTE_NAMES } from './routeNames';
 
 export const ROUTES = {
@@ -30,4 +33,6 @@ export const ROUTES = {
   [ROUTE_NAMES.ACCEPT_TRANSFER]: AcceptTransfer,
   // TODO: replace this with deep link to AdminCancelTransfer
   [ROUTE_NAMES.CANCEL_TRANSFER]: CancelTransfer,
+  [ROUTE_NAMES.BOOT]: Boot,
+  [ROUTE_NAMES.HOSTING]: Hosting,
 };

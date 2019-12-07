@@ -9,7 +9,7 @@ import { useWallet } from 'store/wallet';
 import View from 'components/View';
 import Greeting from 'components/Greeting';
 import Passport from 'components/Passport';
-import { ForwardButton, BootUrbitOSButton } from 'components/Buttons';
+import { ForwardButton } from 'components/Buttons';
 import CopyButton from 'components/CopyButton';
 import { matchBlinky } from 'components/Blinky';
 import DownloadSigilButton from 'components/DownloadSigilButton';
@@ -53,6 +53,8 @@ export default function Point() {
     names.ISSUE_CHILD,
     push,
   ]);
+
+  const goBoot = useCallback(() => push(names.BOOT), [push, names]);
 
   const inviteButton = (() => {
     switch (azimuth.getPointSize(point)) {
@@ -126,7 +128,13 @@ export default function Point() {
             <Grid.Divider />
           </>
         )}
-        <Grid.Item full as={BootUrbitOSButton} />
+        <Grid.Item
+          full
+          as={ForwardButton}
+          detail="Boot your computer"
+          onClick={goBoot}>
+          Boot Urbit OS
+        </Grid.Item>
         <Grid.Divider />
         <Grid.Item
           full
