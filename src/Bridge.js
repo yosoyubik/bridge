@@ -10,6 +10,8 @@ import Provider from 'store/Provider';
 import { ROUTE_NAMES } from 'lib/routeNames';
 import { ROUTES } from 'lib/router';
 import { NETWORK_TYPES } from 'lib/network';
+import { BITCOIN_NETWORK_TYPES } from 'lib/bitcoinNetwork';
+
 import { walletFromMnemonic } from 'lib/wallet';
 import { isDevelopment } from 'lib/flags';
 import useImpliedTicket from 'lib/useImpliedTicket';
@@ -22,6 +24,10 @@ import GlobalErrorBoundary from 'components/GlobalErrorBoundary';
 const INITIAL_NETWORK_TYPE = isDevelopment
   ? NETWORK_TYPES.LOCAL
   : NETWORK_TYPES.MAINNET;
+
+const INITIAL_BITCOIN_NETWORK_TYPE = isDevelopment
+  ? BITCOIN_NETWORK_TYPES.MAINNET
+  : BITCOIN_NETWORK_TYPES.MAINNET;
 
 // NB(shrugs): modify these variables to change the default local state.
 const SHOULD_STUB_LOCAL = process.env.REACT_APP_STUB_LOCAL === 'true';
@@ -36,7 +42,7 @@ const INITIAL_WALLET = IS_STUBBED
 const INITIAL_MNEMONIC = IS_STUBBED
   ? Just(process.env.REACT_APP_DEV_MNEMONIC)
   : Nothing();
-const INITIAL_POINT_CURSOR = IS_STUBBED ? Just(65792) : Nothing();
+const INITIAL_POINT_CURSOR = IS_STUBBED ? Just(99549440) : Nothing();
 
 function useInitialRoutes() {
   const [hasDisclaimed] = useHasDisclaimed();
@@ -47,6 +53,8 @@ function useInitialRoutes() {
       { key: ROUTE_NAMES.LOGIN },
       { key: ROUTE_NAMES.POINTS },
       { key: ROUTE_NAMES.POINT },
+      // { key: ROUTE_NAMES.ADMIN },
+      // { key: ROUTE_NAMES.BITCOIN },
     ];
   }
 
@@ -71,6 +79,7 @@ function Bridge() {
         names={ROUTE_NAMES}
         initialRoutes={initialRoutes}
         initialNetworkType={INITIAL_NETWORK_TYPE}
+        initialBitcoinNetworkType={INITIAL_BITCOIN_NETWORK_TYPE}
         initialWallet={INITIAL_WALLET}
         initialMnemonic={INITIAL_MNEMONIC}
         initialPointCursor={INITIAL_POINT_CURSOR}>

@@ -21,4 +21,6 @@ export const ROUTE_NAMES = {
   PARTY_SET_POOL_SIZE: Symbol('PARTY_SET_POOL_SIZE'),
   INVITE_COHORT: Symbol('INVITE_COHORT'),
   STAR_RELEASE: Symbol('STAR_RELEASE'),
+  //
+  BITCOIN: Symbol('BITCOIN'),
 };

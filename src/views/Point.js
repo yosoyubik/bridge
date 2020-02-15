@@ -85,6 +85,8 @@ export default function Point() {
     push,
   ]);
 
+  const goBitcoin = useCallback(() => push(names.BITCOIN), [push, names]);
+
   const isPlanet = azimuth.getPointSize(point) === azimuth.PointSize.Planet;
 
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -125,6 +127,7 @@ export default function Point() {
       </>
     );
   })();
+
 
   // sync the current cursor
   useSyncOwnedPoints([point]);
@@ -252,6 +255,10 @@ export default function Point() {
           disabled={!code}
           detailClassName="mono">
           Login Code
+        </Grid.Item>
+        <Grid.Divider />
+        <Grid.Item full as={ForwardButton} onClick={goBitcoin}>
+          Bitcoin
         </Grid.Item>
         <Grid.Divider />
       </Grid>
